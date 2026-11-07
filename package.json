@@ -1,0 +1,23 @@
+{
+  "name": "p2-ds-tasaciones",
+  "version": "1.0.0",
+  "description": "API de tasacion inmobiliaria asistida por IA (DeepSeek) - Backend",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "tasacion",
+    "inmobiliaria",
+    "deepseek",
+    "express"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}

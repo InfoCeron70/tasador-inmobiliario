@@ -1,0 +1,47 @@
+/* =========================================================
+   Estilos complementarios a Tailwind
+   (solo spinner de carga y animaciones suaves)
+   ========================================================= */
+
+/* Spinner circular de carga */
+.spinner {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  border: 4px solid #e2e8f0; /* slate-200 */
+  border-top-color: #4f46e5; /* indigo-600 */
+  animation: girar 0.8s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Aparición suave de los resultados */
+.aparecer {
+  animation: aparecer 0.35s ease-out both;
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Respeta la preferencia de movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2s;
+  }
+
+  .aparecer {
+    animation: none;
+  }
+}
