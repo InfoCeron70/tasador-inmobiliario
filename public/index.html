@@ -21,6 +21,15 @@
         Ingresa los datos del inmueble y tus comparables de mercado para obtener un valor referencial,
         un rango estimado y las advertencias del análisis.
       </p>
+
+      <!-- Acceso al historial de tasaciones -->
+      <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
+        <button type="button" id="btn-historial"
+          class="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-300 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-indigo-200"
+          aria-controls="historial" aria-expanded="false">
+          <span aria-hidden="true">&#128203;</span> Ver Historial
+        </button>
+      </div>
     </header>
 
     <!-- ===================== FORMULARIO ===================== -->
@@ -205,6 +214,62 @@
             <span aria-hidden="true">&#9888;</span> Advertencias
           </h3>
           <ul id="lista-advertencias" class="mt-2 list-disc space-y-1 pl-5 text-sm text-yellow-900"></ul>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===================== HISTORIAL DE TASACIONES (oculto por defecto) ===================== -->
+    <section id="historial" class="mt-8 hidden" aria-labelledby="historial-titulo">
+      <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+
+        <!-- Cabecera de la sección -->
+        <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 id="historial-titulo" class="text-lg font-bold text-slate-900">Historial de tasaciones</h2>
+            <p id="historial-contador" class="text-xs text-slate-500">Cargando…</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" id="btn-actualizar-historial"
+              class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-indigo-100">
+              Actualizar
+            </button>
+            <button type="button" id="btn-cerrar-historial"
+              class="rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-indigo-100">
+              Cerrar
+            </button>
+          </div>
+        </div>
+
+        <!-- Estado: cargando -->
+        <div id="historial-cargando" class="hidden flex-col items-center justify-center gap-3 px-5 py-10">
+          <div class="spinner" role="status" aria-label="Cargando historial"></div>
+          <p class="text-sm font-semibold text-slate-600">Cargando historial…</p>
+        </div>
+
+        <!-- Estado: error -->
+        <div id="historial-error" class="mx-5 my-4 hidden rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700"></div>
+
+        <!-- Estado: sin registros -->
+        <div id="historial-vacio" class="hidden px-5 py-10 text-center">
+          <p class="text-sm font-semibold text-slate-600">Todavía no hay tasaciones guardadas.</p>
+          <p class="mt-1 text-xs text-slate-400">Genera un análisis y aparecerá automáticamente aquí.</p>
+        </div>
+
+        <!-- Tabla de tasaciones guardadas -->
+        <div id="historial-tabla-wrapper" class="hidden overflow-x-auto">
+          <table class="min-w-full text-left text-sm">
+            <thead class="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
+              <tr>
+                <th class="px-4 py-2 font-semibold">Fecha</th>
+                <th class="px-4 py-2 font-semibold">Comuna</th>
+                <th class="px-4 py-2 font-semibold">Tipo</th>
+                <th class="px-4 py-2 text-right font-semibold">Superficie m²</th>
+                <th class="px-4 py-2 text-right font-semibold">Valor de referencia</th>
+              </tr>
+            </thead>
+            <tbody id="historial-body" class="divide-y divide-slate-100"></tbody>
+          </table>
         </div>
 
       </div>

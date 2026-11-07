@@ -1,8 +1,16 @@
 'use strict';
 
 const { calcularTasacion } = require('../services/deepseek.service');
+const { guardarTasacion, listarTasaciones } = require('../database');
 
 const TIPOS_PROPIEDAD = ['casa', 'departamento', 'oficina', 'terreno', 'local', 'industrial', 'otro'];
+
+/** Convierte un valor a numero; devuelve null si no es usable. */
+function aNumeroOpcional(valor) {
+  if (valor === null || valor === undefined || valor === '') return null;
+  const numero = Number(valor);
+  return Number.isFinite(numero) ? numero : null;
+}
 
 /**
  * Valida la lista de comparables enviada por el frontend (2 a 5 elementos).
@@ -149,10 +157,31 @@ async function crearTasacion(req, res, next) {
 
     const { resultado, meta } = await calcularTasacion(datos);
 
+    // ---------- Persistencia en el historial (solo si DeepSeek respondio OK) ----------
+    const metaRespuesta = { ...meta };
+
+    try {
+      const { id } = await guardarTasacion({
+        comuna: datos.comuna,
+        tipo: datos.tipoPropiedad,
+        superficie: datos.superficieUtil,
+        valorReferencia: aNumeroOpcional(resultado && resultado.valorReferencia),
+        datos: { data: resultado, meta }
+      });
+
+      metaRespuesta.historialId = id;
+      metaRespuesta.persistido = true;
+    } catch (errorBaseDatos) {
+      // Un fallo al guardar no debe invalidar una tasacion ya calculada:
+      // se registra en el log y se responde igualmente con el resultado.
+      console.error('[tasacion.controller] No fue posible guardar en el historial:', errorBaseDatos);
+      metaRespuesta.persistido = false;
+    }
+
     return res.status(200).json({
       ok: true,
       data: resultado,
-      meta
+      meta: metaRespuesta
     });
   } catch (error) {
     // Errores previstos del servicio (config, red, timeout, JSON invalido...)
@@ -170,4 +199,36 @@ async function crearTasacion(req, res, next) {
   }
 }
 
-module.exports = { crearTasacion, validarPayload, validarComparables };
+/**
+ * GET /api/tasaciones
+ * Devuelve el historial de tasaciones guardadas, de la mas reciente a la mas
+ * antigua. Acepta el parametro opcional ?limite=N (1-500, por defecto 100).
+ */
+async function obtenerHistorial(req, res) {
+  try {
+    const tasaciones = await listarTasaciones({ limite: req.query.limite });
+
+    return res.status(200).json({
+      ok: true,
+      data: tasaciones,
+      meta: { total: tasaciones.length }
+    });
+  } catch (error) {
+    console.error('[tasacion.controller] Error al leer el historial:', error);
+
+    return res.status(500).json({
+      ok: false,
+      error: {
+        codigo: 'DB_ERROR',
+        mensaje: 'No fue posible leer el historial de tasaciones.'
+      }
+    });
+  }
+}
+
+module.exports = {
+  crearTasacion,
+  obtenerHistorial,
+  validarPayload,
+  validarComparables
+};

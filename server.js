@@ -59,12 +59,41 @@ app.use((err, req, res, next) => {
 });
 
 // ---------- Arranque ----------
-app.listen(PORT, () => {
+const servidor = app.listen(PORT, () => {
   console.log(`Servidor escuchando en http://localhost:${PORT}`);
   console.log(`Modelo DeepSeek configurado: ${process.env.DEEPSEEK_MODEL || 'deepseek-flash'}`);
   if (!process.env.DEEPSEEK_API_KEY) {
     console.warn('[server] ADVERTENCIA: DEEPSEEK_API_KEY no esta definida. POST /api/tasacion devolvera 500 CONFIG_ERROR.');
   }
 });
+
+// ---------- Apagado ordenado ----------
+// Cierra el servidor HTTP y la conexion SQLite antes de terminar, para evitar
+// que el proceso salga con recursos abiertos (necesario en Windows).
+async function apagar(senal) {
+  console.log(`\n[server] ${senal} recibido. Cerrando servidor...`);
+
+  const forzarSalida = setTimeout(() => {
+    console.warn('[server] Cierre forzado: habia conexiones abiertas.');
+    process.exit(1);
+  }, 5000);
+  forzarSalida.unref();
+
+  servidor.close(async () => {
+    try {
+      // Require perezoso: el servidor arranca aunque sqlite3 no este disponible.
+      await require('./src/database').cerrarBaseDeDatos();
+    } catch (error) {
+      console.error('[server] Error al cerrar la base de datos:', error);
+    }
+
+    clearTimeout(forzarSalida);
+    console.log('[server] Base de datos cerrada. Hasta luego.');
+    process.exit(0);
+  });
+}
+
+process.on('SIGINT', () => apagar('SIGINT'));
+process.on('SIGTERM', () => apagar('SIGTERM'));
 
 module.exports = app;

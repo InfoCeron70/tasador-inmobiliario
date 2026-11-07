@@ -8,6 +8,8 @@
 const MIN_COMPARABLES = 2;
 const MAX_COMPARABLES = 5;
 const ENDPOINT = '/api/tasacion';
+const ENDPOINT_HISTORIAL = '/api/tasaciones';
+const LIMITE_HISTORIAL = 200;
 
 // ---------- Referencias del DOM ----------
 const form = document.getElementById('tasacion-form');
@@ -22,6 +24,18 @@ const spinner = document.getElementById('spinner');
 const errorPeticion = document.getElementById('error-peticion');
 const resultadoContenido = document.getElementById('resultado-contenido');
 
+// ---------- Referencias del historial ----------
+const btnHistorial = document.getElementById('btn-historial');
+const seccionHistorial = document.getElementById('historial');
+const btnActualizarHistorial = document.getElementById('btn-actualizar-historial');
+const btnCerrarHistorial = document.getElementById('btn-cerrar-historial');
+const historialCargando = document.getElementById('historial-cargando');
+const historialError = document.getElementById('historial-error');
+const historialVacio = document.getElementById('historial-vacio');
+const historialTablaWrapper = document.getElementById('historial-tabla-wrapper');
+const historialBody = document.getElementById('historial-body');
+const historialContador = document.getElementById('historial-contador');
+
 // ---------- Formateadores ----------
 const fmtCLP = new Intl.NumberFormat('es-CL', {
   style: 'currency',
@@ -33,6 +47,7 @@ const fmtFactor = new Intl.NumberFormat('es-CL', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2
 });
+const fmtFecha = new Intl.DateTimeFormat('es-CL', { dateStyle: 'short', timeStyle: 'short' });
 
 /** Convierte un valor a número; devuelve null si no es usable. */
 function aNumero(valor) {
@@ -214,6 +229,11 @@ async function enviarTasacion(evento) {
 
     ocultarSpinner();
     renderizarResultado(cuerpo.data || {}, cuerpo.meta || {});
+
+    // Si el historial está abierto, se refresca con la tasación recién guardada
+    if (!seccionHistorial.classList.contains('hidden')) {
+      cargarHistorial();
+    }
   } catch (error) {
     ocultarSpinner();
     const mensaje = (error && error.message) || 'No fue posible completar la solicitud.';
@@ -385,11 +405,132 @@ function renderizarAdvertencias(advertencias) {
 }
 
 /* =========================================================
+   Historial de tasaciones (GET /api/tasaciones)
+   ========================================================= */
+
+/** Formatea la fecha ISO (UTC) guardada en SQLite a hora local legible. */
+function formatearFecha(valor) {
+  if (!valor) return '—';
+
+  const fecha = new Date(valor);
+  if (Number.isNaN(fecha.getTime())) return String(valor);
+
+  return fmtFecha.format(fecha);
+}
+
+/** Muestra u oculta el spinner interno de la sección del historial. */
+function mostrarCargandoHistorial(visible) {
+  historialCargando.classList.toggle('hidden', !visible);
+  historialCargando.classList.toggle('flex', visible);
+}
+
+/** Muestra el mensaje de error del historial (vacío para limpiarlo). */
+function mostrarErrorHistorial(mensaje) {
+  if (!mensaje) {
+    historialError.textContent = '';
+    historialError.classList.add('hidden');
+    return;
+  }
+
+  historialError.textContent = mensaje;
+  historialError.classList.remove('hidden');
+}
+
+/** Dibuja las filas del historial (DOM seguro, sin innerHTML). */
+function renderizarHistorial(tasaciones) {
+  historialBody.replaceChildren();
+
+  historialContador.textContent =
+    tasaciones.length === 0
+      ? 'Sin registros'
+      : `${tasaciones.length} ${tasaciones.length === 1 ? 'tasación guardada' : 'tasaciones guardadas'}`;
+
+  if (tasaciones.length === 0) {
+    historialTablaWrapper.classList.add('hidden');
+    historialVacio.classList.remove('hidden');
+    return;
+  }
+
+  historialVacio.classList.add('hidden');
+  historialTablaWrapper.classList.remove('hidden');
+
+  tasaciones.forEach((tasacion) => {
+    const fila = document.createElement('tr');
+    fila.className = 'hover:bg-slate-50';
+    const superficie = aNumero(tasacion.superficie);
+
+    fila.appendChild(crearCelda(
+      formatearFecha(tasacion.fecha),
+      'whitespace-nowrap px-4 py-2 text-slate-600'
+    ));
+    fila.appendChild(crearCelda(tasacion.comuna || '—', 'px-4 py-2 font-medium text-slate-800'));
+    fila.appendChild(crearCelda(tasacion.tipo || '—', 'px-4 py-2 capitalize text-slate-600'));
+    fila.appendChild(crearCelda(
+      superficie === null ? '—' : `${fmtDecimal.format(superficie)} m²`,
+      'px-4 py-2 text-right tabular-nums'
+    ));
+    fila.appendChild(crearCelda(
+      formatearCLP(tasacion.valorReferencia),
+      'px-4 py-2 text-right font-semibold tabular-nums text-indigo-700'
+    ));
+
+    historialBody.appendChild(fila);
+  });
+}
+
+/** Pide el historial a la API y lo renderiza en la tabla. */
+async function cargarHistorial() {
+  mostrarErrorHistorial('');
+  historialVacio.classList.add('hidden');
+  historialTablaWrapper.classList.add('hidden');
+  historialContador.textContent = 'Cargando…';
+  mostrarCargandoHistorial(true);
+
+  try {
+    const respuesta = await fetch(`${ENDPOINT_HISTORIAL}?limite=${LIMITE_HISTORIAL}`);
+    const cuerpo = await respuesta.json().catch(() => null);
+
+    if (!respuesta.ok || !cuerpo || cuerpo.ok !== true) {
+      const mensaje = (cuerpo && cuerpo.error && cuerpo.error.mensaje) || `Error HTTP ${respuesta.status}`;
+      throw new Error(mensaje);
+    }
+
+    renderizarHistorial(Array.isArray(cuerpo.data) ? cuerpo.data : []);
+  } catch (error) {
+    historialContador.textContent = 'Error al cargar';
+    mostrarErrorHistorial(
+      (error && error.message) || 'No fue posible cargar el historial de tasaciones.'
+    );
+  } finally {
+    mostrarCargandoHistorial(false);
+  }
+}
+
+/** Abre/cierra la sección del historial y refresca sus datos al abrirse. */
+function alternarHistorial() {
+  const estaOculto = seccionHistorial.classList.contains('hidden');
+
+  if (estaOculto) {
+    seccionHistorial.classList.remove('hidden');
+    btnHistorial.setAttribute('aria-expanded', 'true');
+    seccionHistorial.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    cargarHistorial();
+    return;
+  }
+
+  seccionHistorial.classList.add('hidden');
+  btnHistorial.setAttribute('aria-expanded', 'false');
+}
+
+/* =========================================================
    Inicialización
    ========================================================= */
 
 form.addEventListener('submit', enviarTasacion);
 btnAgregar.addEventListener('click', crearComparable);
+btnHistorial.addEventListener('click', alternarHistorial);
+btnActualizarHistorial.addEventListener('click', cargarHistorial);
+btnCerrarHistorial.addEventListener('click', alternarHistorial);
 
 // Se parte con el mínimo de comparables exigido por el backend
 for (let i = 0; i < MIN_COMPARABLES; i += 1) {
