@@ -41,7 +41,7 @@ envían como descarga.
 | **Base de datos** | SQLite (`sqlite3`) — archivo local `tasaciones.db` |
 | **IA** | API de DeepSeek (`/chat/completions`, `response_format: json_object`) |
 | **Exportación** | `exceljs` (.xlsx) y `pdfkit` (.pdf) — generados en memoria como `Buffer` |
-| **Frontend** | HTML5 + JavaScript vanilla + **Tailwind CSS** (CDN) |
+| **Frontend** | HTML5 + JavaScript vanilla + **Tailwind CSS** (CDN) + tipografía **Inter** (Google Fonts) |
 
 ## Requisitos previos
 

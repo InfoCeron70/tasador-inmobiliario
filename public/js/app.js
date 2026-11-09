@@ -343,18 +343,18 @@ function renderizarTablaComparables(comparables) {
     const superficie = aNumero(comparable.superficieM2);
     const factor = aNumero(comparable.factorAjuste);
 
-    fila.appendChild(crearCelda(comparable.referencia || '—', 'px-4 py-2 font-medium text-slate-800'));
-    fila.appendChild(crearCelda(comparable.comuna || '—', 'px-4 py-2 text-slate-600'));
+    fila.appendChild(crearCelda(comparable.referencia || '—', 'px-4 py-2 font-medium text-white'));
+    fila.appendChild(crearCelda(comparable.comuna || '—', 'px-4 py-2 text-slate-300'));
     fila.appendChild(crearCelda(
       superficie === null ? '—' : `${fmtDecimal.format(superficie)} m²`,
-      'px-4 py-2 text-right tabular-nums'
+      'px-4 py-2 text-right tabular-nums text-slate-200'
     ));
-    fila.appendChild(crearCelda(formatearCLP(comparable.valorM2), 'px-4 py-2 text-right tabular-nums'));
+    fila.appendChild(crearCelda(formatearCLP(comparable.valorM2), 'px-4 py-2 text-right tabular-nums text-slate-200'));
     fila.appendChild(crearCelda(
       factor === null ? '—' : fmtFactor.format(factor),
-      'px-4 py-2 text-center font-bold tabular-nums text-indigo-700'
+      'px-4 py-2 text-center font-bold tabular-nums text-blue-300'
     ));
-    fila.appendChild(crearCelda(comparable.justificacion || '—', 'px-4 py-2 text-slate-600'));
+    fila.appendChild(crearCelda(comparable.justificacion || '—', 'px-4 py-2 text-slate-300'));
 
     tbody.appendChild(fila);
   });
@@ -376,19 +376,19 @@ function renderizarFactores(factores) {
   factores.forEach((factor) => {
     const item = document.createElement('li');
     item.className =
-      'flex flex-col gap-0.5 rounded-lg bg-slate-50 px-3 py-2 md:flex-row md:items-center md:justify-between';
+      'flex flex-col gap-0.5 rounded-lg bg-slate-900/40 px-3 py-2 ring-1 ring-slate-700 md:flex-row md:items-center md:justify-between';
 
     const nombre = document.createElement('span');
-    nombre.className = 'font-semibold text-slate-800';
+    nombre.className = 'font-semibold text-white';
     nombre.textContent = factor.factor || 'Factor';
 
     const valor = aNumero(factor.valor);
     const monto = document.createElement('span');
-    monto.className = 'font-bold tabular-nums text-indigo-700';
+    monto.className = 'font-bold tabular-nums text-blue-300';
     monto.textContent = valor === null ? '—' : fmtFactor.format(valor);
 
     const justificacion = document.createElement('span');
-    justificacion.className = 'text-xs text-slate-500 md:ml-4 md:text-right';
+    justificacion.className = 'text-xs text-slate-400 md:ml-4 md:text-right';
     justificacion.textContent = factor.justificacion || '';
 
     item.append(nombre, monto, justificacion);
@@ -599,7 +599,7 @@ function renderizarHistorial(tasaciones) {
     ));
     fila.appendChild(crearCelda(
       formatearCLP(tasacion.valorReferencia),
-      'px-4 py-2 text-right font-semibold tabular-nums text-indigo-700'
+      'px-4 py-2 text-right font-semibold tabular-nums text-blue-900'
     ));
 
     historialBody.appendChild(fila);

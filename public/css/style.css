@@ -1,15 +1,89 @@
 /* =========================================================
    Estilos complementarios a Tailwind
-   (solo spinner de carga y animaciones suaves)
+   Tipografía corporativa (Inter), fondo, foco accesible,
+   spinner de carga y animaciones suaves.
    ========================================================= */
+
+/* ---------- Tipografía base ---------- */
+:root {
+  --fuente-base: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --color-marca: #4f46e5; /* indigo-600 */
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--fuente-base);
+  /* Variantes de Inter que mejoran la legibilidad de números y signos */
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  /* Fondo azul muy claro: la tarjeta navy del formulario resalta con fuerza */
+  background-color: #f8fafc;
+}
+
+/* Los controles de formulario no heredan la fuente en todos los navegadores */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+::selection {
+  background-color: rgba(79, 70, 229, 0.18);
+}
+
+::placeholder {
+  color: #94a3b8; /* slate-400 */
+  opacity: 1;
+}
+
+/* ---------- Foco visible accesible ----------
+   Los campos ya usan focus:ring-* de Tailwind (que anula el outline); esta
+   regla cubre el resto de elementos interactivos con teclado. */
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-marca);
+  outline-offset: 2px;
+}
+
+/* ---------- Controles de formulario ----------
+   Los colores y el borde llegan por utilidades de Tailwind; aquí se unifican
+   los detalles que cada navegador dibuja a su manera. */
+input,
+select,
+textarea {
+  color-scheme: light; /* spinners y selectores nativos en modo claro */
+}
+
+/* ---------- Selects del formulario ----------
+   El chevron es un SVG posicionado en absolute dentro de un contenedor
+   relativo (ver index.html), por lo que aqui solo se neutraliza el estilo
+   nativo y se reserva el espacio para que el texto no se corte. */
+#tasacion-form select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: none; /* sin imagenes de fondo: evita texturas o tramas */
+  color: #0f172a; /* slate-900 cuando hay un valor elegido */
+  cursor: pointer;
+  text-decoration: none; /* sin subrayados ni decoraciones del navegador */
+  padding-right: 2.75rem; /* 44 px: el texto nunca choca con el chevron */
+}
+
+/* Con la opcion vacia seleccionada, el texto se ve como placeholder suave */
+#tasacion-form select:invalid,
+#tasacion-form select:has(option[value='']:checked) {
+  color: #64748b; /* slate-500 */
+}
 
 /* Spinner circular de carga */
 .spinner {
   width: 3rem;
   height: 3rem;
   border-radius: 9999px;
-  border: 4px solid #e2e8f0; /* slate-200 */
-  border-top-color: #4f46e5; /* indigo-600 */
+  border: 4px solid rgba(148, 163, 184, 0.25); /* slate-400 translucido */
+  border-top-color: #10b981; /* emerald-500 */
   animation: girar 0.8s linear infinite;
 }
 
@@ -35,13 +109,38 @@
   }
 }
 
+/* Filas de tabla: realce suave al pasar el cursor */
+tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+/* Historial (panel claro) */
+#historial-body tr:hover {
+  background-color: #f8fafc; /* slate-50 */
+}
+
+/* Comparables analizados (panel navy) */
+#tabla-comparables-body tr:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
 /* Respeta la preferencia de movimiento reducido */
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   .spinner {
     animation-duration: 2s;
   }
 
   .aparecer {
     animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
   }
 }
