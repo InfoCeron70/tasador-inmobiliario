@@ -9,7 +9,7 @@
 ![DeepSeek](https://img.shields.io/badge/IA-DeepSeek-4D6BFE)
 ![Licencia](https://img.shields.io/badge/licencia-MIT-green)
 
-**Versión:** 1.1.1
+**Versión:** 1.2.0
 
 ---
 
@@ -28,6 +28,11 @@ generada por un modelo de lenguaje de **DeepSeek**:
 Además, cada tasación exitosa se **guarda automáticamente** en una base **SQLite** y puede consultarse
 desde la sección *Ver Historial* de la interfaz o vía API.
 
+El resultado también puede **descargarse como PDF o Excel** con un clic: el informe incluye los datos
+del inmueble, el valor de referencia destacado, el rango, la tabla de comparables analizados, los
+factores de ajuste y las advertencias. Los archivos se generan **en memoria** (nunca en disco) y se
+envían como descarga.
+
 ## Stack
 
 | Capa | Tecnología |
@@ -35,6 +40,7 @@ desde la sección *Ver Historial* de la interfaz o vía API.
 | **Backend** | Node.js + Express 4 (`server.js`, `src/`) |
 | **Base de datos** | SQLite (`sqlite3`) — archivo local `tasaciones.db` |
 | **IA** | API de DeepSeek (`/chat/completions`, `response_format: json_object`) |
+| **Exportación** | `exceljs` (.xlsx) y `pdfkit` (.pdf) — generados en memoria como `Buffer` |
 | **Frontend** | HTML5 + JavaScript vanilla + **Tailwind CSS** (CDN) |
 
 ## Requisitos previos
@@ -244,6 +250,66 @@ curl "http://localhost:3000/api/tasaciones?limite=20"
 }
 ```
 
+### `POST /api/exportar/excel`
+
+Genera el informe de la tasación en **Excel (.xlsx)** y lo devuelve como descarga. El archivo se arma
+**en memoria** con `exceljs` (no se escribe en el disco del servidor, que en Render es efímero).
+
+**Cuerpo de la petición** (`application/json`):
+
+| Campo | Tipo | Obligatorio | Descripción |
+|---|---|---|---|
+| `resultado` | `object` | ✅ | Objeto `data` devuelto por `POST /api/tasacion`. |
+| `datos` | `object` | — | Datos del inmueble enviados a la tasación (comuna, tipo, superficie…). |
+| `meta` | `object` | — | Metadatos de la respuesta (modelo, tokens, `reconstruido`…). |
+
+> También se acepta la forma `{ "data": {...}, "meta": {...} }`, para reenviar tal cual la respuesta de
+> `POST /api/tasacion`.
+
+**Respuesta `200 OK`** — archivo binario:
+
+| Cabecera | Valor |
+|---|---|
+| `Content-Type` | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` |
+| `Content-Disposition` | `attachment; filename="tasacion-<comuna>-<AAAA-MM-DD>.xlsx"` |
+
+Contenido de la hoja *Tasación*: datos del inmueble, valor de referencia, rango, valor por m², conclusión
+del tasador, tabla de comparables (superficie, valor m², factor y valor m² ajustado), factores de ajuste
+y advertencias.
+
+### `POST /api/exportar/pdf`
+
+Mismo cuerpo y validación que el endpoint de Excel, pero devuelve un **PDF A4** maquetado con `pdfkit`
+(encabezado, valor de referencia destacado, tablas con encabezado repetido al cambiar de página y pie con
+numeración).
+
+| Cabecera | Valor |
+|---|---|
+| `Content-Type` | `application/pdf` |
+| `Content-Disposition` | `attachment; filename="tasacion-<comuna>-<AAAA-MM-DD>.pdf"` |
+
+```bash
+# Ejemplo con curl (body guardado en un archivo JSON)
+curl -X POST http://localhost:3000/api/exportar/excel \
+  -H "Content-Type: application/json" \
+  -d @tasacion.json -o tasacion.xlsx
+```
+
+```powershell
+# Ejemplo en PowerShell: reutiliza la respuesta de POST /api/tasacion
+$exportacion = @{
+  datos     = $body | ConvertFrom-Json
+  resultado = $respuesta.data
+  meta      = $respuesta.meta
+} | ConvertTo-Json -Depth 10
+
+Invoke-WebRequest -Uri http://localhost:3000/api/exportar/pdf -Method Post `
+  -ContentType 'application/json' -Body $exportacion -OutFile tasacion.pdf
+```
+
+> El servidor expone `Content-Disposition` vía CORS (`Access-Control-Expose-Headers`), por lo que el
+> frontend puede leer el nombre del archivo incluso si se sirve desde otro origen.
+
 ### Formato de error
 
 Todos los errores comparten la misma estructura:
@@ -265,6 +331,7 @@ Todos los errores comparten la misma estructura:
 | `JSON_INVALIDO` | 400 | El cuerpo enviado no es un JSON válido. |
 | `CONFIG_ERROR` | 500 | Falta `DEEPSEEK_API_KEY` en el servidor. |
 | `DB_ERROR` | 500 | No fue posible leer/escribir el historial SQLite. |
+| `EXPORT_ERROR` | 500 | No fue posible generar el archivo Excel o PDF de la exportación. |
 | `DEEPSEEK_TIMEOUT` | 504 | DeepSeek no respondió dentro de `DEEPSEEK_TIMEOUT_MS`. |
 | `DEEPSEEK_NETWORK_ERROR` | 502 | Error de red al contactar la API. |
 | `DEEPSEEK_HTTP_ERROR` | 502 | La API respondió con un estado HTTP de error. |
@@ -282,15 +349,19 @@ Todos los errores comparten la misma estructura:
 P2_DS_TASACIONES/
 ├── public/                          # Frontend (servido como estático)
 │   ├── css/style.css                # Estilos complementarios (spinner, animaciones)
-│   ├── index.html                   # Formulario de tasación + sección Historial
-│   └── js/app.js                    # Lógica del cliente (fetch, render, historial)
+│   ├── index.html                   # Formulario de tasación + resultados + historial
+│   └── js/app.js                    # Lógica del cliente (fetch, render, historial, descargas)
 ├── src/
 │   ├── controllers/
+│   │   ├── export.controller.js     # Exportación del informe a Excel / PDF (buffer en memoria)
 │   │   └── tasacion.controller.js   # Validación, orquestación y endpoints
 │   ├── routes/
 │   │   └── api.routes.js            # Definición de rutas de la API
 │   ├── services/
-│   │   └── deepseek.service.js      # Cliente DeepSeek, prompt, parseo y reparación de JSON
+│   │   ├── deepseek.service.js      # Cliente DeepSeek, prompt, parseo y reparación de JSON
+│   │   ├── excel.service.js         # Generación del .xlsx con exceljs
+│   │   ├── informe.service.js       # Normalización del informe compartida por Excel y PDF
+│   │   └── pdf.service.js           # Generación del .pdf con pdfkit
 │   └── database.js                  # Conexión SQLite y acceso a la tabla historial
 ├── .env.example                     # Plantilla de variables de entorno
 ├── .gitignore                       # Excluye .env, node_modules y *.db

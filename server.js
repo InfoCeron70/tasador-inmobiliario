@@ -13,7 +13,10 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
 // ---------- Middlewares globales ----------
-app.use(cors());
+// CORS abierto (la API tambien se consume desde el frontend desplegado aparte).
+// exposedHeaders permite que el navegador lea el nombre del archivo que
+// devuelven /api/exportar/excel y /api/exportar/pdf en Content-Disposition.
+app.use(cors({ exposedHeaders: ['Content-Disposition'] }));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 

@@ -9,6 +9,8 @@ const MIN_COMPARABLES = 2;
 const MAX_COMPARABLES = 5;
 const ENDPOINT = '/api/tasacion';
 const ENDPOINT_HISTORIAL = '/api/tasaciones';
+const ENDPOINT_EXPORT_PDF = '/api/exportar/pdf';
+const ENDPOINT_EXPORT_EXCEL = '/api/exportar/excel';
 const LIMITE_HISTORIAL = 200;
 
 // ---------- Referencias del DOM ----------
@@ -23,6 +25,12 @@ const seccionResultados = document.getElementById('resultados');
 const spinner = document.getElementById('spinner');
 const errorPeticion = document.getElementById('error-peticion');
 const resultadoContenido = document.getElementById('resultado-contenido');
+const btnDescargarPDF = document.getElementById('btn-descargar-pdf');
+const btnDescargarExcel = document.getElementById('btn-descargar-excel');
+const btnNuevaTasacion = document.getElementById('btn-nueva-tasacion');
+
+// Última tasación generada: se reutiliza para las descargas en PDF y Excel
+let ultimaTasacion = null;
 
 // ---------- Referencias del historial ----------
 const btnHistorial = document.getElementById('btn-historial');
@@ -228,6 +236,14 @@ async function enviarTasacion(evento) {
     }
 
     ocultarSpinner();
+
+    // Se conserva el payload y el resultado para las descargas PDF / Excel
+    ultimaTasacion = {
+      datos: payload,
+      resultado: cuerpo.data || {},
+      meta: cuerpo.meta || {}
+    };
+
     renderizarResultado(cuerpo.data || {}, cuerpo.meta || {});
 
     // Si el historial está abierto, se refresca con la tasación recién guardada
@@ -405,6 +421,118 @@ function renderizarAdvertencias(advertencias) {
 }
 
 /* =========================================================
+   Descarga del informe (POST /api/exportar/pdf y /api/exportar/excel)
+   ========================================================= */
+
+/** Cuerpo que esperan los endpoints de exportación. */
+function construirCuerpoExportacion() {
+  if (!ultimaTasacion) return null;
+
+  return {
+    datos: ultimaTasacion.datos,
+    resultado: ultimaTasacion.resultado,
+    meta: ultimaTasacion.meta
+  };
+}
+
+/** Lee el nombre del archivo desde la cabecera Content-Disposition. */
+function obtenerNombreArchivo(respuesta, nombrePorDefecto) {
+  const cabecera = respuesta.headers.get('Content-Disposition') || '';
+
+  const utf8 = /filename\*=UTF-8''([^;]+)/i.exec(cabecera);
+  if (utf8) {
+    try {
+      return decodeURIComponent(utf8[1].trim());
+    } catch (error) {
+      // Si no se puede decodificar se intenta con el nombre simple
+    }
+  }
+
+  const simple = /filename="?([^";]+)"?/i.exec(cabecera);
+  return simple ? simple[1].trim() : nombrePorDefecto;
+}
+
+/** Fuerza la descarga de un Blob mediante un enlace temporal. */
+function descargarBlob(blob, nombre) {
+  const url = URL.createObjectURL(blob);
+  const enlace = document.createElement('a');
+
+  enlace.href = url;
+  enlace.download = nombre;
+  enlace.rel = 'noopener';
+
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+
+  // El objeto URL se libera cuando el navegador ya tomó el archivo
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/**
+ * Solicita el archivo al backend y lo descarga.
+ * @param {string} endpoint Ruta de exportación.
+ * @param {HTMLButtonElement} boton Botón que disparó la acción.
+ * @param {string} descripcion Texto para los mensajes ("PDF", "Excel").
+ * @param {string} nombrePorDefecto Nombre de archivo si el backend no lo envía.
+ */
+async function descargarExportacion(endpoint, boton, descripcion, nombrePorDefecto) {
+  const cuerpo = construirCuerpoExportacion();
+
+  if (!cuerpo) {
+    alert('Primero genera una tasación para poder descargar el informe.');
+    return;
+  }
+
+  const contenidoOriginal = boton.innerHTML;
+
+  boton.disabled = true;
+  boton.textContent = 'Generando…';
+
+  try {
+    const respuesta = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cuerpo)
+    });
+
+    // Si hubo un error el backend responde JSON, no el archivo
+    if (!respuesta.ok) {
+      const fallo = await respuesta.json().catch(() => null);
+      const detalles = fallo && fallo.error && Array.isArray(fallo.error.detalles)
+        ? `\n\n${fallo.error.detalles.join('\n')}`
+        : '';
+      const mensaje = (fallo && fallo.error && fallo.error.mensaje) || `Error HTTP ${respuesta.status}`;
+
+      throw new Error(`${mensaje}${detalles}`);
+    }
+
+    const blob = await respuesta.blob();
+    descargarBlob(blob, obtenerNombreArchivo(respuesta, nombrePorDefecto));
+  } catch (error) {
+    const mensaje = (error && error.message) || 'No fue posible completar la descarga.';
+    alert(`No fue posible generar el archivo ${descripcion}:\n\n${mensaje}`);
+  } finally {
+    boton.disabled = false;
+    boton.innerHTML = contenidoOriginal;
+  }
+}
+
+/**
+ * Vuelve al formulario para generar una nueva tasación.
+ * Descarta el resultado mostrado (y la copia usada por las descargas).
+ */
+function reiniciarTasacion() {
+  ultimaTasacion = null;
+
+  errorPeticion.classList.add('hidden');
+  resultadoContenido.classList.add('hidden');
+  seccionResultados.classList.add('hidden');
+
+  form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* =========================================================
    Historial de tasaciones (GET /api/tasaciones)
    ========================================================= */
 
@@ -531,6 +659,20 @@ btnAgregar.addEventListener('click', crearComparable);
 btnHistorial.addEventListener('click', alternarHistorial);
 btnActualizarHistorial.addEventListener('click', cargarHistorial);
 btnCerrarHistorial.addEventListener('click', alternarHistorial);
+
+// Descarga del informe en PDF / Excel (solo si los botones existen en la vista)
+if (btnDescargarPDF && btnDescargarExcel) {
+  btnDescargarPDF.addEventListener('click', () =>
+    descargarExportacion(ENDPOINT_EXPORT_PDF, btnDescargarPDF, 'PDF', 'tasacion.pdf')
+  );
+  btnDescargarExcel.addEventListener('click', () =>
+    descargarExportacion(ENDPOINT_EXPORT_EXCEL, btnDescargarExcel, 'Excel', 'tasacion.xlsx')
+  );
+}
+
+if (btnNuevaTasacion) {
+  btnNuevaTasacion.addEventListener('click', reiniciarTasacion);
+}
 
 // Se parte con el mínimo de comparables exigido por el backend
 for (let i = 0; i < MIN_COMPARABLES; i += 1) {
