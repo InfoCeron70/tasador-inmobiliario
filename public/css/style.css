@@ -144,3 +144,116 @@ tbody tr {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* =========================================================
+   Sistema de diseño
+   Tokens de marca, superficies con profundidad, escala
+   tipográfica y micro-detalles de interfaz.
+   ========================================================= */
+
+:root {
+  /* Paleta de marca */
+  --navy-900: #0f172a;
+  --navy-800: #18233c;
+  --navy-linea: rgba(148, 163, 184, 0.14);
+  --esmeralda-400: #34d399;
+  --esmeralda-500: #10b981;
+  --esmeralda-600: #059669;
+  --superficie: #f5f7fb;
+
+  /* Elevación */
+  --sombra-tarjeta: 0 28px 60px -32px rgba(15, 23, 42, 0.45), 0 2px 6px -2px rgba(15, 23, 42, 0.08);
+  --sombra-destacada: 0 30px 70px -34px rgba(23, 37, 84, 0.6);
+}
+
+/* ---------- Fondo general ---------- */
+body {
+  letter-spacing: -0.011em; /* Inter en interfaz gana precisión con tracking negativo */
+  background-color: var(--superficie);
+  background-image:
+    radial-gradient(1100px 480px at 50% -220px, rgba(16, 185, 129, 0.1), transparent 62%),
+    radial-gradient(900px 420px at 108% 0%, rgba(59, 130, 246, 0.07), transparent 60%);
+  background-repeat: no-repeat;
+}
+
+/* ---------- Jerarquía tipográfica ---------- */
+header h1,
+#tasacion-form h2,
+#resultados h2,
+#resultados h3 {
+  text-wrap: balance;
+}
+
+/* ---------- Superficies navy con profundidad ---------- */
+#tasacion-form,
+#resultados .bg-slate-800 {
+  background-image: linear-gradient(180deg, var(--navy-800) 0%, var(--navy-900) 82%);
+  box-shadow:
+    0 0 0 1px var(--navy-linea),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    var(--sombra-tarjeta);
+}
+
+/* Tarjeta destacada del valor de referencia */
+#resultados .bg-blue-900 {
+  background-image: linear-gradient(135deg, #1e3a8a 0%, #172554 100%);
+  box-shadow:
+    0 0 0 1px rgba(96, 165, 250, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    var(--sombra-destacada);
+}
+
+/* ---------- Títulos de sección con acento esmeralda ---------- */
+#tasacion-form h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+#tasacion-form h2::before {
+  content: '';
+  flex: none;
+  width: 3px;
+  height: 1.15rem;
+  border-radius: 9999px;
+  background-image: linear-gradient(180deg, var(--esmeralda-400), var(--esmeralda-600));
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+}
+
+/* ---------- Campos y tablas: cifras alineadas ---------- */
+#tasacion-form input,
+#tasacion-form select,
+table td,
+table th {
+  font-variant-numeric: tabular-nums;
+}
+
+table th {
+  letter-spacing: 0.06em;
+}
+
+/* ---------- Detalle: barra de desplazamiento sobria ---------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
