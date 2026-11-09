@@ -291,9 +291,15 @@ function renderizarResultado(data, meta) {
       ? `${formatearCLP(minimo)}  –  ${formatearCLP(maximo)}`
       : 'Rango no informado';
 
+  // ---------- Valor por m²: el monto y el "/m²" viajan siempre juntos ----------
   const valorM2Calculado = aNumero(valorM2.calculado);
-  document.getElementById('valor-m2').textContent =
-    valorM2Calculado === null ? '—' : `${formatearCLP(valorM2Calculado)} /m²`;
+  const celdaValorM2 = document.getElementById('valor-m2');
+
+  // whitespace-nowrap + espacio duro: el símbolo nunca cae a otra línea
+  celdaValorM2.className =
+    'mt-1 whitespace-nowrap text-xl font-extrabold tabular-nums text-white md:text-2xl';
+  celdaValorM2.textContent =
+    valorM2Calculado === null ? '—' : `${formatearCLP(valorM2Calculado)}\u00A0/m²`;
 
   // ---------- Conclusión ----------
   const resumen = typeof data.resumen === 'string' && data.resumen.trim()
@@ -343,7 +349,7 @@ function renderizarTablaComparables(comparables) {
     const superficie = aNumero(comparable.superficieM2);
     const factor = aNumero(comparable.factorAjuste);
 
-    fila.appendChild(crearCelda(comparable.referencia || '—', 'px-4 py-2 font-medium text-white'));
+    fila.appendChild(crearCelda(comparable.referencia || '—', 'whitespace-nowrap px-4 py-2 font-medium text-white'));
     fila.appendChild(crearCelda(comparable.comuna || '—', 'px-4 py-2 text-slate-300'));
     fila.appendChild(crearCelda(
       superficie === null ? '—' : `${fmtDecimal.format(superficie)} m²`,
@@ -413,6 +419,7 @@ function renderizarAdvertencias(advertencias) {
 
   validas.forEach((advertencia) => {
     const item = document.createElement('li');
+    item.className = 'text-amber-900'; // texto oscuro sobre el ámbar claro de la caja
     item.textContent = advertencia.trim();
     lista.appendChild(item);
   });

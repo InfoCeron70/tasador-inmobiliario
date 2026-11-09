@@ -227,16 +227,16 @@
         </div>
 
         <!-- Valores destacados -->
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div class="rounded-xl bg-blue-900 p-6 text-white shadow-lg shadow-blue-900/30 ring-1 ring-blue-800 md:col-span-2">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+          <div class="rounded-xl bg-blue-900 p-6 text-white shadow-lg shadow-blue-900/30 ring-1 ring-blue-800 md:col-span-3">
             <p class="text-[11px] font-bold uppercase tracking-widest text-blue-200">Valor de referencia</p>
             <p id="valor-referencia" class="mt-1 text-3xl font-extrabold leading-tight md:text-5xl">—</p>
             <p class="mt-4 text-[11px] font-bold uppercase tracking-widest text-blue-200">Rango estimado</p>
             <p id="rango-valor" class="text-lg font-bold md:text-2xl">—</p>
           </div>
-          <div class="rounded-2xl bg-slate-800 p-6 shadow-2xl ring-1 ring-slate-700">
+          <div class="rounded-2xl bg-slate-800 p-6 shadow-2xl ring-1 ring-slate-700 md:col-span-2">
             <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Valor por m²</p>
-            <p id="valor-m2" class="mt-1 text-2xl font-extrabold text-white md:text-3xl">—</p>
+            <p id="valor-m2" class="mt-1 whitespace-nowrap text-xl font-extrabold tabular-nums text-white md:text-2xl">—</p>
             <p id="meta-modelo" class="mt-4 border-t border-slate-700 pt-3 text-[11px] leading-relaxed text-slate-400">—</p>
           </div>
         </div>
@@ -254,7 +254,7 @@
             <table class="min-w-full text-left text-sm">
               <thead class="bg-slate-900/60 text-[11px] uppercase tracking-wider text-slate-400">
                 <tr>
-                  <th class="px-4 py-2 font-semibold">Referencia</th>
+                  <th class="w-40 whitespace-nowrap px-4 py-2 text-left font-semibold">Referencia</th>
                   <th class="px-4 py-2 font-semibold">Comuna</th>
                   <th class="px-4 py-2 text-right font-semibold">Superficie m²</th>
                   <th class="px-4 py-2 text-right font-semibold">Valor m²</th>
@@ -274,11 +274,11 @@
         </div>
 
         <!-- Advertencias -->
-        <div id="advertencias" class="hidden rounded-2xl border border-amber-500/40 bg-amber-500/10 p-5 shadow-sm">
-          <h3 class="flex items-center gap-2 text-base font-bold text-amber-200">
+        <div id="advertencias" class="hidden rounded-2xl border border-amber-300 bg-amber-100 p-5 shadow-sm">
+          <h3 class="flex items-center gap-2 text-base font-bold text-amber-900">
             <span aria-hidden="true">&#9888;</span> Advertencias
           </h3>
-          <ul id="lista-advertencias" class="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-100"></ul>
+          <ul id="lista-advertencias" class="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-900"></ul>
         </div>
 
       </div>
