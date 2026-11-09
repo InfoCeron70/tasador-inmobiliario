@@ -366,12 +366,83 @@ function renderizarTablaComparables(comparables) {
   });
 }
 
-/** Factores de ajuste aplicados por el modelo. */
+/* ---------- Nombres y agrupación de factores de ajuste ---------- */
+
+/**
+ * Convierte abreviaturas tipo "C1", "c2:" o "Comp 1" en "Comparable N" y
+ * normaliza el separador a " - ". Si el nombre ya es descriptivo, lo respeta.
+ * @param {string} nombre Nombre devuelto por el modelo.
+ * @returns {{ nombre: string, grupo: number|null }} Nombre legible y n° de comparable.
+ */
+function normalizarNombreFactor(nombre) {
+  const texto = typeof nombre === 'string' ? nombre.trim().replace(/\s+/g, ' ') : '';
+
+  if (!texto) return { nombre: 'Factor sin nombre', grupo: null };
+
+  // Acepta "C1", "C 1", "C1:", "Comp. 2 - Distancia", "Comparable 3 Superficie"...
+  const partes = /^(?:comparable|comp\.?|c)\s*-?\s*(\d{1,2})(?!\d)\s*[-–—:.)]*\s*(.*)$/i.exec(texto);
+
+  if (!partes) return { nombre: texto, grupo: null };
+
+  const grupo = Number(partes[1]);
+  const variable = (partes[2] || '').trim();
+
+  return {
+    nombre: variable ? `Comparable ${grupo} - ${variable}` : `Comparable ${grupo}`,
+    grupo
+  };
+}
+
+/**
+ * Prepara los factores para la tabla: traduce los nombres, agrupa los de un
+ * mismo comparable (ordenados por número) y deja al final los generales.
+ * Dentro de cada grupo se conserva el orden en que llegaron del backend.
+ * @param {object[]} factores Lista cruda de factoresAjuste.
+ */
+function prepararFactores(factores) {
+  const lista = Array.isArray(factores) ? factores : [];
+
+  return lista
+    .filter((factor) => factor && typeof factor === 'object')
+    .map((factor, indice) => {
+      const { nombre, grupo } = normalizarNombreFactor(factor.factor);
+
+      return {
+        indice,
+        grupo: grupo === null ? Number.MAX_SAFE_INTEGER : grupo,
+        nombre,
+        valor: aNumero(factor.valor),
+        justificacion: typeof factor.justificacion === 'string' ? factor.justificacion.trim() : ''
+      };
+    })
+    .sort((a, b) => a.grupo - b.grupo || a.indice - b.indice);
+}
+
+/** Encabezado de la tabla de factores (solo en pantallas medianas o mayores). */
+function crearEncabezadoFactores() {
+  const fila = document.createElement('li');
+  fila.className =
+    'hidden gap-x-3 px-3 text-[11px] font-bold uppercase tracking-wide text-slate-500 ' +
+    'md:grid md:grid-cols-[minmax(0,1fr)_4.5rem_minmax(0,1.15fr)]';
+
+  ['Factor', 'Ajuste', 'Justificación'].forEach((titulo, indice) => {
+    const celda = document.createElement('span');
+    celda.className = indice === 1 ? 'text-right' : '';
+    celda.textContent = titulo;
+    fila.appendChild(celda);
+  });
+
+  return fila;
+}
+
+/** Factores de ajuste aplicados por el modelo, agrupados por comparable. */
 function renderizarFactores(factores) {
   const lista = document.getElementById('lista-factores');
   lista.replaceChildren();
 
-  if (factores.length === 0) {
+  const preparados = prepararFactores(factores);
+
+  if (preparados.length === 0) {
     const item = document.createElement('li');
     item.className = 'text-slate-400';
     item.textContent = 'El modelo no detalló factores de ajuste.';
@@ -379,23 +450,26 @@ function renderizarFactores(factores) {
     return;
   }
 
-  factores.forEach((factor) => {
+  lista.appendChild(crearEncabezadoFactores());
+
+  preparados.forEach((factor) => {
     const item = document.createElement('li');
     item.className =
-      'flex flex-col gap-0.5 rounded-lg bg-slate-900/40 px-3 py-2 ring-1 ring-slate-700 md:flex-row md:items-center md:justify-between';
+      'grid grid-cols-[1fr_auto] items-baseline gap-x-3 gap-y-1 rounded-lg bg-slate-900/40 px-3 py-2 ' +
+      'ring-1 ring-slate-700 md:grid-cols-[minmax(0,1fr)_4.5rem_minmax(0,1.15fr)] md:items-center';
 
     const nombre = document.createElement('span');
-    nombre.className = 'font-semibold text-white';
-    nombre.textContent = factor.factor || 'Factor';
+    nombre.className = 'font-medium text-white';
+    nombre.textContent = factor.nombre;
 
-    const valor = aNumero(factor.valor);
     const monto = document.createElement('span');
-    monto.className = 'font-bold tabular-nums text-blue-300';
-    monto.textContent = valor === null ? '—' : fmtFactor.format(valor);
+    monto.className = 'text-right font-bold tabular-nums text-blue-400';
+    monto.textContent = factor.valor === null ? '—' : fmtFactor.format(factor.valor);
 
     const justificacion = document.createElement('span');
-    justificacion.className = 'text-xs text-slate-400 md:ml-4 md:text-right';
-    justificacion.textContent = factor.justificacion || '';
+    justificacion.className =
+      'col-span-2 text-xs leading-relaxed text-slate-400 md:col-span-1 md:text-right';
+    justificacion.textContent = factor.justificacion || '—';
 
     item.append(nombre, monto, justificacion);
     lista.appendChild(item);

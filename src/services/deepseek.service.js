@@ -19,6 +19,10 @@ const DEBUG_DEEPSEEK = process.env.DEBUG_DEEPSEEK === '1';
 const PROMPT_SISTEMA =
   'Eres un tasador experto chileno. Calcula valor por m2, factores de ajuste (0.85 a 1.15), ' +
   'y devuelve estrictamente un JSON con comparables, valor de referencia, rango y advertencias. ' +
+  'En "factoresAjuste" nombra cada factor con el comparable y la variable ajustada ' +
+  '("Comparable 1 - Superficie", "Comparable 1 - Distancia", "Comparable 2 - Superficie") y ' +
+  'agrupa los factores por comparable en ese orden; los factores generales van al final con un ' +
+  'nombre descriptivo (por ejemplo "Antigüedad y estado"). Nunca uses abreviaturas como C1 o C2. ' +
   'Se conciso: el resumen y cada justificacion deben tener como maximo 40 palabras. ' +
   'IMPORTANTE: Tu respuesta debe ser ÚNICAMENTE el objeto JSON válido, sin texto adicional, ' +
   'sin bloques de markdown, sin explicaciones. Debe empezar con { y terminar con }.';
@@ -44,7 +48,7 @@ const ESQUEMA_RESPUESTA = {
   ],
   factoresAjuste: [
     {
-      factor: 'string',
+      factor: 'Comparable 1 - Superficie',
       valor: 1,
       justificacion: 'string'
     }
@@ -86,6 +90,10 @@ function construirMensajeUsuario(datosPropiedad) {
     '- Cada factor de ajuste debe estar entre 0.85 y 1.15.',
     '- Si el usuario entrega "comparables", usalos como base principal del analisis, calcula su factor de ajuste y refleja cada uno en la lista de comparables.',
     '- Si el usuario entrega "precioReferencia", comparalo con tu estimacion y menciona la diferencia en el resumen o en las advertencias.',
+    '- En "factoresAjuste" usa nombres descriptivos que indiquen el comparable y la variable: ' +
+      '"Comparable 1 - Superficie", "Comparable 1 - Distancia", "Comparable 2 - Superficie", "Comparable 2 - Distancia". ' +
+      'Agrupa los factores por comparable y en orden; los factores que no dependen de un comparable ' +
+      'van al final con un nombre claro (por ejemplo "Antigüedad y estado"). No uses abreviaturas como C1 o C2.',
     '- Si falta informacion, usa supuestos prudentes y declaralos en "advertencias".',
     '- Responde EXCLUSIVAMENTE con un objeto json valido, sin texto adicional ni bloques markdown.',
     '',
